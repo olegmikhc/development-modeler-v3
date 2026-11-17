@@ -1,0 +1,17 @@
+'use client';
+import {useState} from 'react';
+import {Plus,Building2,Copy,Trash2} from 'lucide-react';
+import {useModels} from '@/store/model-store';
+import {FinancialModel,neutral} from '@/types/model';
+import {calculatePortfolioCashFlow} from '@/lib/financial-engine';
+import {isSingleModel} from '@/lib/model-creation';
+import {appPath} from '@/lib/app-path';
+import {copyModel} from '@/lib/copy-model';
+import {money} from '@/lib/format';
+import {CreateModel} from './create-model';
+import {ModelImport} from './model-import';
+export function ModelsHome({onOpen,notify}:{onOpen:(id:string)=>void;notify:(text:string)=>void}){
+ const s=useModels(),[creating,setCreating]=useState(false);
+ const create=(model:FinancialModel)=>{s.importModel(model);setCreating(false);onOpen(model.id)};
+ return <div className="v3-library"><header className="v3-library-top"><div className="v-brand"><Building2/><div>development<span>MODELER / 3.0</span></div></div><span className="v3-local">Сохранение в этом браузере</span></header><main><div className="v3-library-heading"><div><div className="v-eyebrow">РАБОЧЕЕ ПРОСТРАНСТВО</div><h1>Мои модели</h1><p>Один проект или целый портфель. Выберите модель или начните новую.</p></div><button className="btn dark" onClick={()=>setCreating(true)}><Plus size={17}/>Новая модель</button></div><div className="row" style={{flexWrap:"wrap"}}><ModelImport notify={notify}/><a className="btn" href={appPath('/invited/')}>Доступные мне модели</a></div><div className="v3-model-grid">{s.models.map(m=>{const r=calculatePortfolioCashFlow(m,m.scenarios.find(x=>x.id===m.activeScenario)?.adjustments||neutral),hotel=m.projects.some(p=>p.businessModel==='hotel'),retail=m.projects.some(p=>p.businessModel!=='hotel');return <article className="v3-model-card" key={m.id}><button className="v3-model-open" onClick={()=>onOpen(m.id)}><span className="v3-model-kind">{isSingleModel(m)?'Один проект':`Портфель · ${m.projects.length} проектов`}</span><h2>{m.name}</h2><p>{hotel&&retail?'Отели и розничные продажи':hotel?'Отель целиком':'Розничная продажа'}</p><div className="v3-card-numbers"><span>Поступления<b>{money(r.revenue,true,m.currency)}</b></span><span>Результат<b>{money(r.profit,true,m.currency)}</b></span></div><span className="v3-open-link">Открыть модель ↗</span></button><footer><button className="btn" aria-label={`Создать копию: ${m.name}`} onClick={()=>{const copy=copyModel(m);copy.name=m.name+' · Копия';s.importModel(copy);notify('Независимая копия создана')}}><Copy size={14}/>Копия</button><button className="icon-btn" disabled={s.models.length<=1} title={s.models.length<=1?'Сохраните хотя бы одну модель':'Переместить в корзину'} aria-label={`Удалить модель: ${m.name}`} onClick={()=>{if(confirm(`Переместить «${m.name}» в корзину?`))s.deleteModel(m.id)}}><Trash2 size={16}/></button></footer></article>})}<button className="v3-model-new" onClick={()=>setCreating(true)}><Plus size={28}/><b>Новая финансовая модель</b><span>Розничная продажа или отель целиком</span></button></div>{s.deletedModels.length>0&&<details className="v-card"><summary>Корзина · {s.deletedModels.length}</summary>{s.deletedModels.map(m=><div className="row spread" key={m.id}><span>{m.name}</span><button className="btn" onClick={()=>s.restoreDeletedModel(m.id)}>Восстановить</button></div>)}</details>}<p className="v3-library-note">Модели хранятся на этом устройстве. Скачивайте резервные копии в открытой модели.</p></main>{creating&&<CreateModel open onClose={()=>setCreating(false)} onCreate={create}/>}</div>
+}
