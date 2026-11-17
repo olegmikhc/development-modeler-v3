@@ -1,6 +1,7 @@
 export type ModelStructure = 'single' | 'portfolio';
 export type BusinessModel = 'retail' | 'hotel';
-export interface HotelPlan {rooms:number;buildingArea:number;openingDelay:number;operatingMonths:number;nightlyRateIdr:number;idrPerUsd:number;saleValuation:'manual'|'yield';buyerYield:number;occupancy:number;otherRevenuePercent:number;variableCostPercent:number;fixedMonthlyCost:number;saleEnabled:boolean;salePrice:number;saleCostPercent:number}
+export interface HotelRoomType {id:string;name:string;quantity:number;adrIdr:number}
+export interface HotelPlan {roomTypes?:HotelRoomType[];rooms:number;buildingArea:number;openingDelay:number;operatingMonths:number;nightlyRateIdr:number;idrPerUsd:number;saleValuation:'manual'|'yield';buyerYield:number;occupancy:number;otherRevenuePercent:number;variableCostPercent:number;fixedMonthlyCost:number;saleEnabled:boolean;salePrice:number;saleCostPercent:number}
 export type Curve = 'Even' | 'Front Loaded' | 'Back Loaded' | 'S-Curve' | 'Custom';
 export type Anchor = 'Fixed Month' | 'Project Start' | 'PBG Start' | 'PBG End' | 'Sales Start' | 'Construction Start' | 'Handover';
 export type Driver = 'Fixed $' | '$ / unit' | '$ / m²' | '% Revenue' | '% Construction';

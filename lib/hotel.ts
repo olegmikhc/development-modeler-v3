@@ -1,8 +1,12 @@
-import {Adjustments,HotelPlan,Project,Result,neutral} from '@/types/model';
+import {Adjustments,HotelPlan,HotelRoomType,Project,Result,neutral} from '@/types/model';
 import {timeline,infrastructureWindow,round} from './financial-engine';
 import {modelMonthDate,DEFAULT_MODEL_START} from './model-calendar';
 export const hotelDefaults:HotelPlan={rooms:30,buildingArea:1800,openingDelay:0,operatingMonths:60,nightlyRateIdr:2400000,idrPerUsd:16000,saleValuation:'yield',buyerYield:12,occupancy:65,otherRevenuePercent:15,variableCostPercent:30,fixedMonthlyCost:15000,saleEnabled:false,salePrice:0,saleCostPercent:3};
-export const hotelPlan=(p:Project):HotelPlan=>({...hotelDefaults,...p.hotel,idrPerUsd:p.land.leasehold?.idrPerUsd&&p.land.leasehold.idrPerUsd>0?p.land.leasehold.idrPerUsd:p.hotel?.idrPerUsd||hotelDefaults.idrPerUsd});
+export function hotelRoomTypes(p:Project):HotelRoomType[]{return p.hotel?.roomTypes??[{id:'legacy-room-type',name:'Стандартный номер',quantity:p.hotel?.rooms??hotelDefaults.rooms,adrIdr:p.hotel?.nightlyRateIdr??hotelDefaults.nightlyRateIdr}]}
+export function hotelPlan(p:Project):HotelPlan {
+ const roomTypes=hotelRoomTypes(p),rooms=roomTypes.reduce((n,r)=>n+r.quantity,0),daily=roomTypes.reduce((n,r)=>n+r.quantity*r.adrIdr,0);
+ return {...hotelDefaults,...p.hotel,roomTypes,rooms,nightlyRateIdr:rooms?daily/rooms:0,idrPerUsd:p.land.leasehold?.idrPerUsd&&p.land.leasehold.idrPerUsd>0?p.land.leasehold.idrPerUsd:p.hotel?.idrPerUsd||hotelDefaults.idrPerUsd};
+}
 export const projectArea=(p:Project)=>p.businessModel==='hotel'?hotelPlan(p).buildingArea:p.units.reduce((n,u)=>n+u.area*u.quantity,0);
 export const projectCapacity=(p:Project)=>p.businessModel==='hotel'?hotelPlan(p).rooms:p.units.reduce((n,u)=>n+u.quantity,0);
 export function hotelWindow(p:Project,a:Adjustments=neutral){
