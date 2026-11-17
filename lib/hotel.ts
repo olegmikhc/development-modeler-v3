@@ -2,10 +2,16 @@ import {Adjustments,HotelPlan,HotelRoomType,Project,Result,neutral} from '@/type
 import {timeline,infrastructureWindow,round} from './financial-engine';
 import {modelMonthDate,DEFAULT_MODEL_START} from './model-calendar';
 export const hotelDefaults:HotelPlan={rooms:30,buildingArea:1800,openingDelay:0,operatingMonths:60,nightlyRateIdr:2400000,idrPerUsd:16000,saleValuation:'yield',buyerYield:12,occupancy:65,otherRevenuePercent:15,variableCostPercent:30,fixedMonthlyCost:15000,saleEnabled:false,salePrice:0,saleCostPercent:3};
-export function hotelRoomTypes(p:Project):HotelRoomType[]{return p.hotel?.roomTypes??[{id:'legacy-room-type',name:'Стандартный номер',quantity:p.hotel?.rooms??hotelDefaults.rooms,adrIdr:p.hotel?.nightlyRateIdr??hotelDefaults.nightlyRateIdr}]}
+export function hotelRoomTypes(p:Project):HotelRoomType[]{
+ const rows=p.hotel?.roomTypes??[{id:'legacy-room-type',name:'Стандартный номер',quantity:p.hotel?.rooms??hotelDefaults.rooms,adrIdr:p.hotel?.nightlyRateIdr??hotelDefaults.nightlyRateIdr}];
+ const missing=rows.filter(r=>r.area===undefined).reduce((n,r)=>n+r.quantity,0);
+ const assigned=rows.reduce((n,r)=>n+r.quantity*(r.area??0),0);
+ const legacyArea=missing?Math.max(0,(p.hotel?.buildingArea??hotelDefaults.buildingArea)-assigned)/missing:0;
+ return rows.map(r=>({...r,area:r.area??legacyArea}));
+}
 export function hotelPlan(p:Project):HotelPlan {
  const roomTypes=hotelRoomTypes(p),rooms=roomTypes.reduce((n,r)=>n+r.quantity,0),daily=roomTypes.reduce((n,r)=>n+r.quantity*r.adrIdr,0);
- return {...hotelDefaults,...p.hotel,roomTypes,rooms,nightlyRateIdr:rooms?daily/rooms:0,idrPerUsd:p.land.leasehold?.idrPerUsd&&p.land.leasehold.idrPerUsd>0?p.land.leasehold.idrPerUsd:p.hotel?.idrPerUsd||hotelDefaults.idrPerUsd};
+ return {...hotelDefaults,...p.hotel,roomTypes,rooms,buildingArea:roomTypes.reduce((n,r)=>n+r.quantity*(r.area??0),0),nightlyRateIdr:rooms?daily/rooms:0,idrPerUsd:p.land.leasehold?.idrPerUsd&&p.land.leasehold.idrPerUsd>0?p.land.leasehold.idrPerUsd:p.hotel?.idrPerUsd||hotelDefaults.idrPerUsd};
 }
 export const projectArea=(p:Project)=>p.businessModel==='hotel'?hotelPlan(p).buildingArea:p.units.reduce((n,u)=>n+u.area*u.quantity,0);
 export const projectCapacity=(p:Project)=>p.businessModel==='hotel'?hotelPlan(p).rooms:p.units.reduce((n,u)=>n+u.quantity,0);
@@ -22,7 +28,7 @@ export function hotelCashRows(p:Project,a:Adjustments=neutral,startDate=DEFAULT_
  const h=hotelPlan(p),w=hotelWindow(p,a),collections:{month:number;amount:number;kind:string}[]=[],costs:{month:number;amount:number;category:string}[]=[];
  for(let month=w.opening;month<=w.end;month++){
   const date=modelMonthDate(startDate,month),days=new Date(Date.UTC(date.getUTCFullYear(),date.getUTCMonth()+1,0)).getUTCDate();
-  const roomRevenue=round(h.rooms*days*h.occupancy/100*(h.nightlyRateIdr/h.idrPerUsd)*Math.max(0,1+a.price/100));
+  const roomRevenue=round(h.roomTypes!.reduce((n,r)=>n+r.quantity*r.adrIdr,0)*days*h.occupancy/100/h.idrPerUsd*Math.max(0,1+a.price/100));
   const otherRevenue=round(roomRevenue*h.otherRevenuePercent/100);
   collections.push({month,amount:roomRevenue,kind:'Доход от номеров'},{month,amount:otherRevenue,kind:'Прочие доходы отеля'});
   costs.push({month,amount:round((roomRevenue+otherRevenue)*h.variableCostPercent/100),category:'Переменные расходы отеля'},{month,amount:h.fixedMonthlyCost,category:'Постоянные расходы отеля'});
