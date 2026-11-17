@@ -10,6 +10,6 @@ Without these variables, local models and JSON exchange work; cloud sharing is u
 
 The original development-modeler repository and database are independent and must not be overwritten.
 
-Email access roles are configured per model. Verified recipients can view/copy as readers, or edit the original and manage invitations as editors. Invitations do not send email automatically. Google email addresses work with the email/password login; Google OAuth is not configured.
+Email access roles are configured per model. Verified recipients can view/copy as readers, or edit the original and manage invitations as editors. Invitations do not send email automatically. Google sign-in is implemented in the application. The Google provider must be enabled in Supabase with a Web OAuth client whose authorized redirect URI is `https://mecndnvvcwqcnnstmvzr.supabase.co/auth/v1/callback`. Provider credentials must only be stored in Supabase, never in the browser bundle. Google OAuth provider setup is pending. Custom SMTP is not configured, so external email/password registrations cannot receive verification mail yet.
 
 V3 uses its own Supabase project `mecndnvvcwqcnnstmvzr` (Singapore). Migrations 001–005 are installed. Do not point V3 at an older database.
