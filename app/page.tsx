@@ -32,7 +32,7 @@ const money=(v:number,currency:string)=>new Intl.NumberFormat('ru-RU',{style:'cu
 function Input({label,value,onChange,min=0,max=1e9,step=1}:{label:string;value:number;onChange:(n:number)=>void;min?:number;max?:number;step?:number}){return <label className="v-field"><span>{label}</span><NumberInput aria-label={label} value={value} min={min} max={max} step={step} onChange={e=>onChange(Math.max(min,Math.min(max,Number(e.target.value))))}/></label>}
 export default function Home(){
  const s=useModels(),[ready,setReady]=useState(false),[storedScope,setScope]=useState('portfolio'),[view,setView]=useState('Models'),[adding,setAdding]=useState(false),[edit,setEdit]=useState<{id:string;tab:string}|null>(null),[year,setYear]=useState(0),[metric,setMetric]=useState('margin'),[axis,setAxis]=useState<'speed'|'construction'>('speed'),[basis,setBasis]=useState<'operating'|'developer'>('operating'),[toast,setToast]=useState(''),[deleting,setDeleting]=useState<string|null>(null),[sharing,setSharing]=useState(false);
- useEffect(()=>setReady(true),[]);
+ useEffect(()=>{setReady(true);const requested=new URLSearchParams(window.location.search).get('open');if(requested&&useModels.getState().models.some(m=>m.id===requested)){useModels.getState().selectModel(requested);setView('studio');}},[]);
  useEffect(()=>{setScope('portfolio');setEdit(null);setSharing(false);setYear(0)},[s.activeId]);
  const raw=s.models.find(m=>m.id===s.activeId)||s.models[0];
  const model=useMemo(()=>({...raw,projects:raw.projects.map(p=>({...p,market:p.market||defaultMarket()}))}),[raw]);

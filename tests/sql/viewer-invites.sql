@@ -45,3 +45,33 @@ set role anon;
 do $$begin
  begin perform list_invited_models();raise exception 'Anonymous leak';exception when insufficient_privilege then null;end;
 end $$;
+
+-- Editor invitation, model isolation, management, downgrade and revoke.
+reset role;
+set role authenticated;
+select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000001',false);
+select set_model_email_access('20000000-0000-4000-8000-000000000001','friend@test.invalid','editor');
+select set_model_email_access('20000000-0000-4000-8000-000000000001','pending@test.invalid','editor');
+select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000004',false);
+do $$begin if manages_model('20000000-0000-4000-8000-000000000001') then raise exception 'Unverified editor';end if;end $$;
+select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000002',false);
+do $$begin
+ if not manages_model('20000000-0000-4000-8000-000000000001') then raise exception 'Missing editor access';end if;
+ if exists(select 1 from financial_models where id='20000000-0000-4000-8000-000000000002') then raise exception 'Private model leaked';end if;
+ if (select access_role from list_model_invitations() limit 1)<>'editor' then raise exception 'Wrong editor role';end if;
+ perform save_financial_model('20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','Edited','{"id":"20000000-0000-4000-8000-000000000001","name":"Edited"}',1);
+ perform set_model_email_access('20000000-0000-4000-8000-000000000001','stranger@test.invalid','viewer');
+ perform create_model_share('20000000-0000-4000-8000-000000000001');
+ perform copy_invited_model('20000000-0000-4000-8000-000000000001');
+end $$;
+select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000001',false);
+select set_model_email_access('20000000-0000-4000-8000-000000000001','friend@test.invalid','viewer');
+select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000002',false);
+do $$begin
+ if edits_model('20000000-0000-4000-8000-000000000001') then raise exception 'Downgrade failed';end if;
+ if (select access_role from list_model_invitations() limit 1)<>'viewer' then raise exception 'Wrong viewer role';end if;
+end $$;
+select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000001',false);
+select revoke_model_viewer('20000000-0000-4000-8000-000000000001','friend@test.invalid');
+select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000002',false);
+do $$begin if exists(select 1 from list_model_invitations()) then raise exception 'Revoked invitation visible';end if;end $$;
