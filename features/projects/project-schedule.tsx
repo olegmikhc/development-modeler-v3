@@ -1,4 +1,6 @@
 'use client';
+import {useRef,useState} from 'react';
+import {timelinePeriods,TimelineScale} from '@/lib/timeline-scale';
 import {hotelWindow} from '@/lib/hotel';
 import {Project} from '@/types/model';
 import {projectWindow,anchorMonth,infrastructureWindow,moveInfrastructure,movePbg,moveProjectActivity,moveShowVilla,stageStart,timeline} from '@/lib/financial-engine';
@@ -6,9 +8,11 @@ import {ScheduleBar,ScheduleAxis} from './schedule-bar';
 import {Select,Toggle} from '@/components/ui/controls';
 import {tr} from '@/lib/i18n';
 export function ProjectSchedule({project:p,startDate,onChange}:{project:Project;startDate:string;onChange:(p:Project)=>void}){
+ const [scale,setScale]=useState<TimelineScale>('months');const scroll=useRef<HTMLDivElement>(null);
  const t=timeline(p),horizon=projectWindow(p).end+6; // Editing runway only; never used as a financial horizon.
+ const periods=timelinePeriods(startDate,horizon,scale);const grid=`linear-gradient(to right,${periods.flatMap(period=>{const x=(period.start-1)/horizon*100;return [`transparent ${x}%`,`#e9e9ee ${x}%`,`#e9e9ee calc(${x}% + 1px)`,`transparent calc(${x}% + 1px)`]}).join(',')})`;
  const bar=(label:string,start:number,duration:number,change:(s:number,d:number,e:'move'|'start'|'end')=>void,color?:string,milestone=false)=><ScheduleBar label={label} start={start} duration={duration} horizon={horizon} startDate={startDate} onChange={change} color={color} milestone={milestone}/>;
- return <><p className="pe-help">Перетаскивайте полосу, чтобы перенести этап. Потяните за край, чтобы изменить длительность. Стрелки на клавиатуре — шаг в один месяц.</p><div className="pe-schedule-scroll"><div className="pe-schedule-canvas"><ScheduleAxis horizon={horizon} startDate={startDate}/>
+ return <><div className="timeline-scale-toolbar"><div className="timeline-scale" role="group" aria-label="Масштаб сроков проекта">{([['months','Месяцы'],['quarters','Кварталы'],['years','Годы']] as const).map(([value,label])=><button type="button" key={value} aria-pressed={scale===value} className={scale===value?'active':''} onClick={()=>{setScale(value);scroll.current?.scrollTo({left:0})}}>{label}</button>)}</div><span>{scale==='years'?'Весь срок на экране':scale==='quarters'?'Календарные кварталы':'Помесячный план'}</span></div><p className="pe-help">Перетаскивайте полосу, чтобы перенести этап. Потяните за край, чтобы изменить длительность. Стрелки на клавиатуре — шаг в один месяц.</p><div className={`pe-schedule-scroll pe-project-schedule pe-scale-${scale}`} ref={scroll}><div className="pe-schedule-canvas" style={{minWidth:scale==='years'?0:265+periods.length*(scale==='quarters'?85:48),'--schedule-grid':grid,'--schedule-grid-size':'100% 100%'} as React.CSSProperties}><ScheduleAxis horizon={horizon} startDate={startDate} scale={scale}/>
  {bar('Старт проекта',p.start,1,s=>onChange({...p,start:Math.min(120,s)}),'#8e8e93',true)}
  {bar('Разрешения · PBG',t.pbgStart,t.pbgDuration,(s,d,e)=>onChange(movePbg(p,e==='end'?d-t.pbgDuration:s-t.pbgStart,e==='move'?undefined:e)),'#a18557')}
  {p.timeline.stages.map((stage,i)=><div key={i}>{bar(tr(stage.name),stageStart(p,stage),stage.duration,(start,duration)=>onChange({...p,timeline:{...p.timeline,stages:p.timeline.stages.map((s,j)=>j===i?{...s,duration,anchor:s.anchor||'Project Start',offset:start-anchorMonth(p,s.anchor||'Project Start')}:s)}}),'#8393ab')}</div>)}
