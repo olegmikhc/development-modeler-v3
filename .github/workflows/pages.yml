@@ -1,7 +1,5 @@
 name: Publish GitHub Pages
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
@@ -27,8 +25,8 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
         env:
-          NEXT_PUBLIC_BASE_PATH: /development-modeler-v2
-          NEXT_PUBLIC_SITE_URL: https://olegmikhc.github.io/development-modeler-v2
+          NEXT_PUBLIC_BASE_PATH: /development-modeler-v3
+          NEXT_PUBLIC_SITE_URL: https://olegmikhc.github.io/development-modeler-v3
           NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
       - uses: actions/configure-pages@v5

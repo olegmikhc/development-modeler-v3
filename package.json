@@ -1,11 +1,11 @@
 {
-  "name": "development-modeler-v2",
-  "version": "2.0.0",
+  "name": "development-modeler-v3",
+  "version": "3.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --webpack --hostname 127.0.0.1 --port 3200",
+    "dev": "next dev --webpack --hostname 127.0.0.1 --port 3300",
     "build": "node scripts/build-pages.mjs",
-    "start": "next start --hostname 127.0.0.1 --port 3200",
+    "start": "next start --hostname 127.0.0.1 --port 3300",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "build:pages": "node scripts/build-pages.mjs"
