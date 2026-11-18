@@ -60,5 +60,8 @@ export function hotelMetrics(p:Project,result:Result,a:Adjustments=neutral,start
   const noi=round(income-cost);
   return {year:i+1,start,end,months,income:round(income),cost:round(cost),noi,roi:developmentCost>0?noi/developmentCost:null};
  });
- return {...rows,developmentCost,years,annualROI:developmentCost>0?rows.annualNOI/developmentCost:null,paybackMonth:sustained(true),operatingPaybackMonth:sustained(false),totalROI:developmentCost>0?result.profit/developmentCost:null};
+ const constructionStart=timeline(p,a.projectId&&a.projectId!==p.id?neutral:a).constructionStart;
+ const investmentMonths=rows.saleMonth===null?null:Math.max(1,rows.saleMonth-constructionStart+1);
+ const averageAnnualROI=developmentCost>0&&investmentMonths!==null?result.profit/developmentCost/(investmentMonths/12):null;
+ return {...rows,developmentCost,years,constructionStart,investmentMonths,averageAnnualROI,annualROI:developmentCost>0?rows.annualNOI/developmentCost:null,paybackMonth:sustained(true),operatingPaybackMonth:sustained(false),totalROI:developmentCost>0?result.profit/developmentCost:null};
 }
