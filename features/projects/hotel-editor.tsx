@@ -18,12 +18,13 @@ export function HotelEditor({project:p,onChange,startDate,section='all'}:{projec
  <div className="hotel-sale-status">
   <Toggle label="Включить продажу отеля в расчёт" checked={h.saleEnabled} onChange={saleEnabled=>set({saleEnabled})}/>
   <p>{h.saleEnabled?'Продажа после':'Возможная продажа после'} {Number((h.operatingMonths/12).toFixed(2))} лет эксплуатации · <b>{modelMonthDate(startDate,cash.end+1).toLocaleDateString('ru-RU',{month:'long',year:'numeric',timeZone:'UTC'})}</b> · М{cash.end+1}</p>
-  <small>Срок задаётся периодом владения в разделе «Эксплуатация».</small>
+  <small>До продажи учитываются доходы и расходы отеля за весь выбранный срок.</small>
  </div>
  <div className="hotel-sale-layout">
   <div className="hotel-sale-panel">
    <h3>Параметры продажи</h3>
    <div className="hotel-sale-fields">
+    <Field label="Продажа через · лет от открытия" type="number" min={0} max={50} step={1/12} value={Number((h.operatingMonths/12).toFixed(4))} onChange={years=>set({operatingMonths:Math.round(years*12)})} help="Срок работы отеля до продажи. Синхронизирован с периодом эксплуатации; 0 — продажа при открытии. Можно указать неполный год."/>
     <label className="field"><span>Способ расчёта цены продажи</span><AppSelect value={h.saleValuation} onChange={e=>set({saleValuation:e.target.value as 'manual'|'yield'})}><option value="yield">Из доходности покупателя</option><option value="manual">Задать цену вручную</option></AppSelect></label>
     {h.saleValuation==='yield'?<Field label="Доходность покупателя · % годовых" type="number" min={0.1} max={100} value={h.buyerYield} onChange={buyerYield=>set({buyerYield})}/>:<Field label="Цена продажи отеля целиком · USD" type="number" value={h.salePrice} onChange={salePrice=>set({salePrice})}/>}
     <Field label="Расходы на сделку · % от цены продажи" type="number" max={100} value={h.saleCostPercent} onChange={saleCostPercent=>set({saleCostPercent})}/>
