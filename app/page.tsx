@@ -31,7 +31,6 @@ import {ShareModel} from '@/features/models/share';
 import {ModelImport} from '@/features/models/model-import';
 import {CashChart} from '@/features/models/dashboard';
 import {amountTone} from '@/lib/financial-colors';
-import './v2.css';
 const money=(v:number,currency:string)=>new Intl.NumberFormat('ru-RU',{style:'currency',currency,maximumFractionDigits:0}).format(v);
 function Input({label,value,onChange,min=0,max=1e9,step=1}:{label:string;value:number;onChange:(n:number)=>void;min?:number;max?:number;step?:number}){return <label className="v-field"><span>{label}</span><NumberInput aria-label={label} value={value} min={min} max={max} step={step} onChange={e=>onChange(Math.max(min,Math.min(max,Number(e.target.value))))}/></label>}
 export default function Home(){

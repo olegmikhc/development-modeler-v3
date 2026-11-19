@@ -317,3 +317,5 @@
 .v3-return-grid .v3-payback-note{display:block;margin-top:8px;font-size:12px;line-height:1.6;color:#74747e;max-width:40ch}
 
 .sidebar-cloud-status{display:flex;align-items:center;gap:9px;padding:12px;border:1px solid #e1e1e6;border-radius:10px;background:#f7f7fa;color:#64646b;font-size:12px;line-height:1.5;overflow-wrap:anywhere}.sidebar-cloud-status svg{flex-shrink:0}.sidebar-cloud-status.saved{color:#267d59;background:#eef8f2;border-color:#d7eadf}
+
+.v3-account-dialog{padding:24px;max-width:580px;margin:auto}.v3-account-dialog .card{border:0;box-shadow:none;padding:0}.v3-library-notice{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:60;max-width:90vw}.v3-library-notice button{margin-left:16px}.v3-model-card footer>div{flex-wrap:wrap}
