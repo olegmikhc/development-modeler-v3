@@ -36,8 +36,9 @@ describe('investment proposal',()=>{
   expect(off.flows.development).toBe(f.development);
  });
  it('rejects deleted projects and sanitizes the download filename',()=>{const m=sample();expect(()=>proposalData(m,'missing')).toThrow('Проект не найден');expect(proposalFilename('A/B:C')).toBe('Инвестиционное предложение - A B C.pdf');});
- it.each(['hotel','financed','no-sale','long','retail'] as const)('generates a complete readable PDF for %s',async kind=>{
+ it.each(['hotel','zero-sale-fee','financed','no-sale','long','retail'] as const)('generates a complete readable PDF for %s',async kind=>{
   const m=kind==='retail'?createFinancialModel('Виллы','single','retail'):sample(),p=m.projects[0];
+  if(kind==='zero-sale-fee'){p.hotel!.saleCostPercent=0;p.hotel!.operatingMonths=24;}
   if(kind==='financed')m.investments=[{id:'funding',name:'Инвестор проекта',projectId:p.id,enabled:true,type:'annual',rate:12,compounding:'simple',incomePayment:'maturity',maturityMonth:24,autoSettle:true,tranches:[{id:'tranche',month:1,amount:500000}],repayments:[]}];
   if(kind==='no-sale')p.hotel!.saleEnabled=false;
   if(kind==='long'){p.name='Большой гостиничный комплекс с длинным названием в живописном районе острова';p.hotel!.operatingMonths=600;p.infrastructure=Array.from({length:28},(_,i)=>({id:String(i),name:`Инфраструктура ${i+1}: ресторан и дополнительные помещения для обслуживания гостей`,area:80,costPerM2:300,curve:'Even',offset:0,duration:4}));p.hotel!.roomTypes=Array.from({length:25},(_,i)=>({id:String(i),name:`Номер ${i+1} с большой террасой и видом на океан`,area:50,quantity:2,adrIdr:2400000}));}
