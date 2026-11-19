@@ -70,24 +70,24 @@ class Report {
    });this.y+=height;
   }
  }
- table(headers:string[],rows:string[][],widths:number[],numeric:number[]=[],font=9){
+ table(headers:string[],rows:string[][],widths:number[],numeric:number[]=[],font=9,padding=10){
   const head=()=>{const h=Math.max(...headers.map((v,i)=>this.lines(v,widths[i]-16,8,true).length))*11+18;this.rect(M,this.y,CW,h);let x=M;headers.forEach((v,i)=>{this.lines(v,widths[i]-16,8,true).forEach((l,k)=>this.text(l,x+8,this.y+8+k*11,8,C.muted,true));x+=widths[i];});this.y+=h;};
   this.ensure(80);head();
   for(const row of rows){
    const lines=row.map((v,i)=>this.lines(v,widths[i]-16,font));let offset=0,total=Math.max(...lines.map(l=>l.length));
    while(offset<total){
-    if(this.y+font*1.45+10>BOTTOM){this.newPage(this.title,'Продолжение');head();}
-    const count=Math.min(total-offset,Math.floor((BOTTOM-this.y-10)/(font*1.45))),height=count*font*1.45+10;let x=M;
-    lines.forEach((ls,i)=>{ls.slice(offset,offset+count).forEach((l,k)=>{const dx=numeric.includes(i)?widths[i]-8-this.regular.widthOfTextAtSize(l,font):8;this.text(l,x+dx,this.y+5+k*font*1.45,font);});x+=widths[i];});
+    if(this.y+font*1.45+padding>BOTTOM){this.newPage(this.title,'Продолжение');head();}
+    const count=Math.min(total-offset,Math.floor((BOTTOM-this.y-padding)/(font*1.45))),height=count*font*1.45+padding;let x=M;
+    lines.forEach((ls,i)=>{ls.slice(offset,offset+count).forEach((l,k)=>{const dx=numeric.includes(i)?widths[i]-8-this.regular.widthOfTextAtSize(l,font):8;this.text(l,x+dx,this.y+padding/2+k*font*1.45,font);});x+=widths[i];});
     this.y+=height;this.rule(this.y);offset+=count;
    }
   }
   this.y+=16;
  }
- chart(values:number[],labels:string[],title:string,line=false){
-  this.ensure(240);this.text(title,M,this.y,10,C.muted);const top=this.y+30,bottom=top+150,x0=M+43,width=CW-50;
+ chart(values:number[],labels:string[],title:string,line=false,plotHeight=150){
+  this.ensure(plotHeight+90);this.text(title,M,this.y,10,C.muted);const top=this.y+30,bottom=top+plotHeight,x0=M+43,width=CW-50;
   const min=Math.min(0,...values),max=Math.max(0,...values),range=max-min||1;
-  const py=(n:number)=>bottom-(n-min)/range*150;
+  const py=(n:number)=>bottom-(n-min)/range*plotHeight;
   for(let i=0;i<=4;i++){const val=min+range*i/4,y=py(val);this.rule(y,x0,width);this.text(num(val/1e6,2),M,y-5,8,C.muted);}
   const step=width/Math.max(1,values.length);let previous:{x:number;y:number}|undefined;
   values.forEach((v,i)=>{const x=x0+step*(i+.5);if(line){const point={x,y:H-py(v)};if(previous)this.page.drawLine({start:previous,end:point,thickness:2,color:color(C.purple)});previous=point;}else this.rect(x-step*.32,Math.min(py(v),py(0)),step*.64,Math.max(.7,Math.abs(py(v)-py(0))),tone(v));if(i%Math.max(1,Math.ceil(values.length/12))===0||i===values.length-1)this.text(labels[i],x-5,bottom+10,8,C.muted);});
@@ -106,7 +106,7 @@ export async function createProposalPdf(model:FinancialModel,projectId:string,fo
  const cost=h?.developmentCost??r.cost;
  const duration=plan?(plan.operatingMonths%12===0?`${num(plan.operatingMonths/12)} ${{one:'год',few:'года',many:'лет',other:'лет',zero:'лет',two:'года'}[new Intl.PluralRules('ru').select(plan.operatingMonths/12)]}`:`${num(plan.operatingMonths)} мес.`):'';
  const flowKpis=h?[
-  {label:'Инвестиционный бюджет',value:money(d.flows.development)},
+  {label:'Бюджет проекта',value:money(d.flows.development)},
   {label:`Выручка от эксплуатации · ${duration}`,value:money(d.flows.operatingRevenue)},
   {label:`Расходы на эксплуатацию · ${duration}`,value:money(d.flows.operatingCosts)},
   {label:`NOI от эксплуатации · ${duration}`,value:money(d.flows.noi),ink:tone(d.flows.noi)},
@@ -130,7 +130,7 @@ export async function createProposalPdf(model:FinancialModel,projectId:string,fo
   }).join(' · ')+(types.length>4?` · ещё ${types.length-4} типов — в составе актива`:''),10,C.ink);
  }
  b.y=Math.max(b.y+12,410);
- b.kpis([{label:'Инвестиционный бюджет',value:money(cost),note:'Земля, строительство и прочие затраты'},h?{label:'Годовой NOI',value:money(h.annualNOI),note:'Последние 12 месяцев эксплуатации',ink:tone(h.annualNOI)}:{label:'Выручка от продажи юнитов',value:money(r.revenue)}, {label:'Потребность в капитале',value:money(r.peak),note:'Максимальный кассовый дефицит'},{label:'Чистый результат',value:money(r.profit),note:'До финансирования и выплат инвесторам',ink:tone(r.profit)}]);
+ b.kpis([{label:'Бюджет проекта',value:money(cost),note:'Земля, строительство и прочие затраты'},h?{label:'Годовой NOI',value:money(h.annualNOI),note:'Последние 12 месяцев эксплуатации',ink:tone(h.annualNOI)}:{label:'Выручка от продажи юнитов',value:money(r.revenue)}, {label:'Потребность в капитале',value:money(r.peak),note:'Максимальный кассовый дефицит'},{label:'Чистый результат',value:money(r.profit),note:'До финансирования и выплат инвесторам',ink:tone(r.profit)}]);
  b.paragraph(`Сценарий: ${tr(d.scenarioName)} · Валюта: ${model.currency}\nСформировано: ${generatedAt.toLocaleDateString('ru-RU')} · Начало модели: ${date(1)}`,9);
 
  b.newPage('Инвестиционная логика','Ключевые результаты и полный срок реализации проекта.');
@@ -138,7 +138,8 @@ export async function createProposalPdf(model:FinancialModel,projectId:string,fo
  b.kpis([...flowKpis,{label:'ROI за весь период',value:pct(d.totalROI),note:h?'Прибыль / себестоимость создания':'Прибыль / все расходы',ink:d.totalROI===null?C.ink:tone(d.totalROI)},{label:h?'Среднегодовой ROI с учётом продажи':'Горизонт денежных потоков',value:h?pct(h.averageAnnualROI):`${d.end} мес.`,note:h?.investmentMonths?`От начала строительства до продажи: ${h.investmentMonths} мес.`:h?'Не определяется без продажи отеля':'От начала модели',ink:h?.averageAnnualROI?tone(h.averageAnnualROI):C.ink},{label:`NPV · ${num(d.discount,1)}% годовых`,value:money(d.npv),ink:tone(d.npv)}],true);
  if(h)b.paragraph(`Окупаемость только эксплуатацией: ${h.operatingPaybackYears===null?'не определяется':num(h.operatingPaybackYears,1)+' лет от открытия'}.`,10,C.ink);
 
- b.newPage('Актив и предпосылки','Параметры проекта, типы юнитов и исходные допущения.');
+ if(h)b.newPage('Актив и предпосылки','Параметры проекта, типы юнитов и исходные допущения.');
+ else {b.y+=8;b.heading('Актив и предпосылки');}
  const fx=projectExchangeRate(p);
  b.table(['ПАРАМЕТР','ЗНАЧЕНИЕ'],[['Проект',p.name],['Локация',[p.location,p.country].filter(Boolean).join(' · ')||'Не указана'],['Статус',tr(p.status)],['Расчёт земли',p.land.pricingMode==='Freehold'?'Фрихолд':p.land.pricingMode==='Leasehold'?`Лизхолд · ${num(p.land.leasehold?.years??0)} лет`:'Стоимость задана вручную'],['Площадь земли',`${num(p.land.area,2)} ${p.land.unit==='are'?'соток':p.land.unit==='hectare'?'га':'м²'}`],['Строительство',period(d.timeline.constructionStart,d.timeline.completion)],...(h?[['Эксплуатация',plan!.operatingMonths?period(h.opening,h.end):'Не задана'],['Продажа',h.saleMonth?date(h.saleMonth):'Отключена']]:[]),['Вторая валюта / курс',fx.unitsPerBase?`${num(fx.unitsPerBase,4)} ${fx.currency} за 1 ${fx.baseCurrency}`:'Не задан']], [180,CW-180]);
  b.heading('Типы юнитов');
@@ -149,25 +150,26 @@ export async function createProposalPdf(model:FinancialModel,projectId:string,fo
 
  b.newPage('Бюджет и этапы','Структура затрат на создание проекта и календарь реализации.');
  const groups=[['Земля',d.budget.filter(([k])=>k==='Land Payments').reduce((s,[,v])=>s+v,0)],[h?'Строительство номеров':'Строительство юнитов',d.budget.filter(([k])=>k==='Construction').reduce((s,[,v])=>s+v,0)],['Инфраструктура',d.budget.filter(([k])=>k.startsWith('Infrastructure · ')).reduce((s,[,v])=>s+v,0)],['Прочие затраты',d.budget.filter(([k])=>k!=='Land Payments'&&k!=='Construction'&&!k.startsWith('Infrastructure · ')).reduce((s,[,v])=>s+v,0)]] as [string,number][];
- for(const [label,value] of groups){b.ensure(43);b.text(label,M,b.y,10);b.text(money(value),M+260,b.y,11,C.ink,true);b.rect(M,b.y+20,CW,7);if(cost>0&&value>0)b.rect(M,b.y+20,Math.max(1,Math.min(CW,CW*value/cost)),7,C.purple);b.y+=40;}
- b.paragraph(`Инвестиционный бюджет: ${money(cost)}`,11,C.ink);
+ for(const [label,value] of groups){b.ensure(h?43:30);b.text(label,M,b.y,10);b.text(money(value),M+260,b.y,11,C.ink,true);b.rect(M,b.y+20,CW,7);if(cost>0&&value>0)b.rect(M,b.y+20,Math.max(1,Math.min(CW,CW*value/cost)),7,C.purple);b.y+=h?40:30;}
+ b.paragraph(`Бюджет проекта: ${money(cost)}`,11,C.ink);
  b.heading('Календарь проекта');
- b.table(['ЭТАП','ПЕРИОД'],[['Начало проекта',date(p.start)],['Разрешения',period(d.timeline.pbgStart,d.timeline.pbgEnd)],['Строительство',period(d.timeline.constructionStart,d.timeline.completion)],['Передача объекта',date(d.timeline.handover)],...(h?[['Эксплуатация',plan!.operatingMonths?period(h.opening,h.end):'Не задана'],['Продажа',h.saleMonth?date(h.saleMonth):'Отключена']]:[])],[180,CW-180]);
+ b.table(['ЭТАП','ПЕРИОД'],[['Начало проекта',date(p.start)],['Разрешения',period(d.timeline.pbgStart,d.timeline.pbgEnd)],['Строительство',period(d.timeline.constructionStart,d.timeline.completion)],['Передача объекта',date(d.timeline.handover)],...(h?[['Эксплуатация',plan!.operatingMonths?period(h.opening,h.end):'Не задана'],['Продажа',h.saleMonth?date(h.saleMonth):'Отключена']]:[])],[180,CW-180],[],h?9:8);
  if(d.infrastructure.length){b.heading('Инфраструктура');b.table(['ОБЪЕКТ','ПЛОЩАДЬ, м²','БЮДЖЕТ','ПЕРИОД'],d.infrastructure.map(i=>[i.name,num(i.area,2),money(i.budget),`М${i.window.start}-М${i.window.end} · ${i.window.end-i.window.start+1} мес.`]),[170,70,110,CW-350],[1,2]);}
  b.heading('Земля, строительство и прочие затраты');
- b.table(['СТАТЬЯ','СУММА'],d.budget.filter(([label])=>!label.startsWith('Infrastructure · ')).map(([label,value])=>[label==='Construction'?(h?'Строительство номеров':'Строительство юнитов'):tr(label),money(value)]),[330,CW-330],[1]);
+ b.table(['СТАТЬЯ','СУММА'],d.budget.filter(([label])=>!label.startsWith('Infrastructure · ')).map(([label,value])=>[label==='Construction'?(h?'Строительство номеров':'Строительство юнитов'):tr(label),money(value)]),[330,CW-330],[1],9,h?10:4);
 
  b.newPage('Денежный поток по годам',`Полный цикл проекта · ${model.currency}. Годы отсчитываются от начала модели.`);
  if(h){
-  b.chart(years.map(y=>-y.developmentCosts),years.map(y=>String(y.year)),`Инвестиционный бюджет по годам, млн ${model.currency}`);
+  b.chart(years.map(y=>-y.developmentCosts),years.map(y=>String(y.year)),`Бюджет проекта по годам, млн ${model.currency}`);
   b.chart(years.map(y=>y.noi),years.map(y=>String(y.year)),`NOI от эксплуатации по годам, млн ${model.currency}`);
  }else{
-  b.chart(years.map(y=>y.net),years.map(y=>String(y.year)),`Чистый денежный поток, млн ${model.currency}`);
-  b.chart(years.map(y=>y.cumulative),years.map(y=>String(y.year)),`Накопленный денежный поток, млн ${model.currency}`,true);
+  b.chart(years.map(y=>y.net),years.map(y=>String(y.year)),`Чистый денежный поток, млн ${model.currency}`,false,100);
+  b.chart(years.map(y=>y.cumulative),years.map(y=>String(y.year)),`Накопленный денежный поток, млн ${model.currency}`,true,100);
  }
- b.newPage('Финансовый план по годам',`Суммы в тысячах ${model.currency}, округлены. Продажа указана за вычетом расходов на сделку.`);
+ if(h||years.length>4)b.newPage('Финансовый план по годам',`Суммы в тысячах ${model.currency}, округлены. Продажа указана за вычетом расходов на сделку.`);
+ else {b.heading('Финансовый план по годам');b.paragraph(`Суммы в тысячах ${model.currency}, округлены.`,9);}
  const thousands=(v:number)=>num(Math.abs(v)<.5?0:v/1000,1);
- b.table(h?['ГОД / МЕСЯЦЫ','ИНВЕСТ. БЮДЖЕТ','ВЫРУЧКА ОТЕЛЯ','OPEX','NOI','ПРОДАЖА НЕТТО','ЧИСТЫЙ ПОТОК']:['ГОД / МЕСЯЦЫ','РАСХОДЫ','ПОСТУПЛЕНИЯ','ЧИСТЫЙ ПОТОК'],years.map(y=>h?[`${y.year} · M${y.start}-${y.end}`,thousands(y.developmentCosts),thousands(y.operatingIncome),thousands(y.operatingCosts),thousands(y.noi),thousands(y.sale-y.saleCosts),thousands(y.net)]:[`${y.year} · M${y.start}-${y.end}`,thousands(y.cost),thousands(y.income),thousands(y.net)]),h?[68,72,76,68,68,78,CW-430]:[100,135,135,CW-370],h?[1,2,3,4,5,6]:[1,2,3],8);
+ b.table(h?['ГОД / МЕСЯЦЫ','БЮДЖЕТ ПРОЕКТА','ВЫРУЧКА ОТЕЛЯ','OPEX','NOI','ПРОДАЖА НЕТТО','ЧИСТЫЙ ПОТОК']:['ГОД / МЕСЯЦЫ','РАСХОДЫ','ПОСТУПЛЕНИЯ','ЧИСТЫЙ ПОТОК'],years.map(y=>h?[`${y.year} · M${y.start}-${y.end}`,thousands(y.developmentCosts),thousands(y.operatingIncome),thousands(y.operatingCosts),thousands(y.noi),thousands(y.sale-y.saleCosts),thousands(y.net)]:[`${y.year} · M${y.start}-${y.end}`,thousands(y.cost),thousands(y.income),thousands(y.net)]),h?[68,72,76,68,68,78,CW-430]:[100,135,135,CW-370],h?[1,2,3,4,5,6]:[1,2,3],8);
  b.summary([...flowKpis,{label:'Чистый результат',value:money(r.profit),ink:tone(r.profit)},{label:'ROI за весь период',value:pct(d.totalROI),ink:d.totalROI===null?C.ink:tone(d.totalROI)},...(h?[{label:'Среднегодовой ROI с учётом продажи',value:pct(h.averageAnnualROI),ink:h.averageAnnualROI?tone(h.averageAnnualROI):C.ink}]:[])]);
 
  if(h||d.investments.length)b.newPage(h?'Продажа отеля':'Финансирование','');
