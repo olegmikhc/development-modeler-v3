@@ -39,11 +39,11 @@ class Report {
  newPage(title:string,subtitle='',cover=false){
   this.page=this.doc.addPage([W,H]);this.title=title;this.subtitle=subtitle;
   this.text('DEVELOPMENT MODELER',M,27,8,C.muted,true);this.rect(W-M-30,24,30,20,C.purple);this.text('V3',W-M-23,27,9,C.white,true);
-  if(!cover){const lines=this.lines(title,CW,24,true);lines.forEach((line,i)=>this.text(line,M,68+i*31,24,C.ink,true));const sy=76+lines.length*31;const sub=this.lines(subtitle,CW,9);sub.forEach((line,i)=>this.text(line,M,sy+i*14,9,C.muted));this.y=sy+sub.length*14+27;}else this.y=110;
+  if(!cover){const lines=this.lines(title,CW,24,true);lines.forEach((line,i)=>this.text(line,M,68+i*31,24,C.ink,true));const sy=76+lines.length*31;const sub=this.lines(subtitle,CW,9);sub.forEach((line,i)=>this.text(line,M,sy+i*14,9,C.muted));this.y=sy+sub.length*14+14;}else this.y=110;
  }
  ensure(height:number){if(this.y+height>BOTTOM)this.newPage(this.title,'Продолжение');}
  paragraph(value:string,size=10,ink=C.muted){for(const line of this.lines(value,CW,size)){this.ensure(size*1.5);this.text(line,M,this.y,size,ink);this.y+=size*1.5;}this.y+=14;}
- heading(value:string){this.ensure(112);this.text(value,M,this.y,15,C.ink,true);this.y+=32;}
+ heading(value:string){this.ensure(80);this.text(value,M,this.y,15,C.ink,true);this.y+=27;}
  kpis(items:{label:string;value:string;note?:string;ink?:string}[],compact=false){
   const columns=compact?3:2,height=compact?88:108,gap=compact?12:16,width=(CW-gap*(columns-1))/columns;
   for(let i=0;i<items.length;i+=columns){
@@ -57,19 +57,32 @@ class Report {
    });this.y+=height+12;
   }
  }
+ summary(items:{label:string;value:string;ink?:string}[]){
+  const width=(CW-16)/2,height=54;
+  this.ensure(27+Math.ceil(items.length/2)*height);
+  this.heading('Итоги за весь срок');
+  for(let i=0;i<items.length;i+=2){
+   items.slice(i,i+2).forEach((item,j)=>{
+    const x=M+j*(width+16);
+    this.lines(item.label,width-16,8.5).forEach((line,k)=>this.text(line,x+8,this.y+5+k*11,8.5,C.muted));
+    this.text(item.value,x+8,this.y+29,15,item.ink??C.ink,true);
+    this.rule(this.y+height-3,x,width);
+   });this.y+=height;
+  }
+ }
  table(headers:string[],rows:string[][],widths:number[],numeric:number[]=[],font=9){
   const head=()=>{const h=Math.max(...headers.map((v,i)=>this.lines(v,widths[i]-16,8,true).length))*11+18;this.rect(M,this.y,CW,h);let x=M;headers.forEach((v,i)=>{this.lines(v,widths[i]-16,8,true).forEach((l,k)=>this.text(l,x+8,this.y+8+k*11,8,C.muted,true));x+=widths[i];});this.y+=h;};
   this.ensure(80);head();
   for(const row of rows){
    const lines=row.map((v,i)=>this.lines(v,widths[i]-16,font));let offset=0,total=Math.max(...lines.map(l=>l.length));
    while(offset<total){
-    if(this.y+font*1.45+18>BOTTOM){this.newPage(this.title,'Продолжение');head();}
-    const count=Math.min(total-offset,Math.floor((BOTTOM-this.y-18)/(font*1.45))),height=count*font*1.45+18;let x=M;
-    lines.forEach((ls,i)=>{ls.slice(offset,offset+count).forEach((l,k)=>{const dx=numeric.includes(i)?widths[i]-8-this.regular.widthOfTextAtSize(l,font):8;this.text(l,x+dx,this.y+8+k*font*1.45,font);});x+=widths[i];});
+    if(this.y+font*1.45+10>BOTTOM){this.newPage(this.title,'Продолжение');head();}
+    const count=Math.min(total-offset,Math.floor((BOTTOM-this.y-10)/(font*1.45))),height=count*font*1.45+10;let x=M;
+    lines.forEach((ls,i)=>{ls.slice(offset,offset+count).forEach((l,k)=>{const dx=numeric.includes(i)?widths[i]-8-this.regular.widthOfTextAtSize(l,font):8;this.text(l,x+dx,this.y+5+k*font*1.45,font);});x+=widths[i];});
     this.y+=height;this.rule(this.y);offset+=count;
    }
   }
-  this.y+=22;
+  this.y+=16;
  }
  chart(values:number[],labels:string[],title:string,line=false){
   this.ensure(240);this.text(title,M,this.y,10,C.muted);const top=this.y+30,bottom=top+150,x0=M+43,width=CW-50;
@@ -130,9 +143,9 @@ export async function createProposalPdf(model:FinancialModel,projectId:string,fo
  b.paragraph(`Инвестиционный бюджет: ${money(cost)}`,11,C.ink);
  b.heading('Календарь проекта');
  b.table(['ЭТАП','ПЕРИОД'],[['Начало проекта',date(p.start)],['Разрешения',period(d.timeline.pbgStart,d.timeline.pbgEnd)],['Строительство',period(d.timeline.constructionStart,d.timeline.completion)],['Передача объекта',date(d.timeline.handover)],...(h?[['Эксплуатация',plan!.operatingMonths?period(h.opening,h.end):'Не задана'],['Продажа',h.saleMonth?date(h.saleMonth):'Отключена']]:[])],[180,CW-180]);
- if(d.infrastructure.length){b.heading('Инфраструктура');b.table(['ОБЪЕКТ','ПЛОЩАДЬ, м²','БЮДЖЕТ','ПЕРИОД'],d.infrastructure.map(i=>[i.name,num(i.area,2),money(i.budget),period(i.window.start,i.window.end)]),[170,70,110,CW-350],[1,2]);}
- b.heading('Детализация затрат');
- b.table(['СТАТЬЯ','СУММА'],d.budget.map(([label,value])=>[tr(label),money(value)]),[330,CW-330],[1]);
+ if(d.infrastructure.length){b.heading('Инфраструктура');b.table(['ОБЪЕКТ','ПЛОЩАДЬ, м²','БЮДЖЕТ','ПЕРИОД'],d.infrastructure.map(i=>[i.name,num(i.area,2),money(i.budget),`М${i.window.start}-М${i.window.end} · ${i.window.end-i.window.start+1} мес.`]),[170,70,110,CW-350],[1,2]);}
+ b.heading('Земля, строительство и прочие затраты');
+ b.table(['СТАТЬЯ','СУММА'],d.budget.filter(([label])=>!label.startsWith('Infrastructure · ')).map(([label,value])=>[tr(label),money(value)]),[330,CW-330],[1]);
 
  b.newPage('Денежный поток по годам',`Полный цикл проекта · ${model.currency}. Годы отсчитываются от начала модели.`);
  if(h){
@@ -145,8 +158,7 @@ export async function createProposalPdf(model:FinancialModel,projectId:string,fo
  b.newPage('Финансовый план по годам',`Суммы в тысячах ${model.currency}, округлены. Продажа указана за вычетом расходов на сделку.`);
  const thousands=(v:number)=>num(Math.abs(v)<.5?0:v/1000,1);
  b.table(h?['ГОД / МЕСЯЦЫ','ИНВЕСТ. БЮДЖЕТ','ВЫРУЧКА ОТЕЛЯ','OPEX','NOI','ПРОДАЖА НЕТТО','ЧИСТЫЙ ПОТОК']:['ГОД / МЕСЯЦЫ','РАСХОДЫ','ПОСТУПЛЕНИЯ','ЧИСТЫЙ ПОТОК'],years.map(y=>h?[`${y.year} · M${y.start}-${y.end}`,thousands(y.developmentCosts),thousands(y.operatingIncome),thousands(y.operatingCosts),thousands(y.noi),thousands(y.sale-y.saleCosts),thousands(y.net)]:[`${y.year} · M${y.start}-${y.end}`,thousands(y.cost),thousands(y.income),thousands(y.net)]),h?[68,72,76,68,68,78,CW-430]:[100,135,135,CW-370],h?[1,2,3,4,5,6]:[1,2,3],8);
- b.ensure(32+Math.ceil((flowKpis.length+(h?3:2))/3)*100);b.heading('Итоги за весь срок');
- b.kpis([...flowKpis,{label:'Чистый результат',value:money(r.profit),ink:tone(r.profit)},{label:'ROI за весь период',value:pct(d.totalROI),ink:d.totalROI===null?C.ink:tone(d.totalROI)},...(h?[{label:'Среднегодовой ROI с учётом продажи',value:pct(h.averageAnnualROI),note:h.investmentMonths?`Полный срок: ${h.investmentMonths} мес. от начала стройки`:'Продажа выключена',ink:h.averageAnnualROI?tone(h.averageAnnualROI):C.ink}]:[])],true);
+ b.summary([...flowKpis,{label:'Чистый результат',value:money(r.profit),ink:tone(r.profit)},{label:'ROI за весь период',value:pct(d.totalROI),ink:d.totalROI===null?C.ink:tone(d.totalROI)},...(h?[{label:'Среднегодовой ROI с учётом продажи',value:pct(h.averageAnnualROI),ink:h.averageAnnualROI?tone(h.averageAnnualROI):C.ink}]:[])]);
 
  if(h||d.investments.length)b.newPage(h?'Продажа отеля':'Финансирование','');
  if(h&&plan){b.table(['ПАРАМЕТР','ЗНАЧЕНИЕ'],[['Статус',plan.saleEnabled?'Включена в расчёт':'Отключена, стоимость актива не включена в доход'],['Срок от открытия',`${num(plan.operatingMonths/12,2)} лет`],['Дата продажи',h.saleMonth?date(h.saleMonth):'Не запланирована'],['Способ оценки',plan.saleValuation==='yield'?`NOI / доходность покупателя ${num(plan.buyerYield,2)}%`:'Цена задана вручную'],['Годовой NOI для оценки',money(h.annualNOI)],['Цена продажи',money(h.salePrice)+(plan.saleEnabled?'':' · предварительная оценка')],['Расходы на сделку',`${num(plan.saleCostPercent,2)}%`],['Чистое поступление',plan.saleEnabled?money(h.salePrice-h.costs.filter(c=>c.category==='Расходы на продажу отеля').reduce((s,c)=>s+c.amount,0)):'Не включено']],[200,CW-200]);}
