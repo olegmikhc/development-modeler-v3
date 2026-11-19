@@ -45,14 +45,14 @@ class Report {
  paragraph(value:string,size=10,ink=C.muted){for(const line of this.lines(value,CW,size)){this.ensure(size*1.5);this.text(line,M,this.y,size,ink);this.y+=size*1.5;}this.y+=14;}
  heading(value:string){this.ensure(112);this.text(value,M,this.y,15,C.ink,true);this.y+=32;}
  kpis(items:{label:string;value:string;note?:string;ink?:string}[],compact=false){
-  const columns=compact?3:2,height=compact?72:108,gap=compact?12:16,width=(CW-gap*(columns-1))/columns;
+  const columns=compact?3:2,height=compact?88:108,gap=compact?12:16,width=(CW-gap*(columns-1))/columns;
   for(let i=0;i<items.length;i+=columns){
    this.ensure(height+16);
    items.slice(i,i+columns).forEach((item,j)=>{
     const x=M+j*(width+gap);this.rect(x,this.y,width,height);
-    this.lines(item.label,width-26,9).slice(0,2).forEach((l,k)=>this.text(l,x+13,this.y+12+k*12,9,C.muted));
+    this.lines(item.label,width-26,9).slice(0,compact?3:2).forEach((l,k)=>this.text(l,x+13,this.y+12+k*12,9,C.muted));
     let size=compact?17:23;while(this.bold.widthOfTextAtSize(this.clean(item.value),size)>width-26&&size>10)size--;
-    this.text(item.value,x+13,this.y+43,size,item.ink??C.ink,true);
+    this.text(item.value,x+13,this.y+(compact?55:43),size,item.ink??C.ink,true);
     if(!compact)this.lines(item.note??'',width-26,8).slice(0,2).forEach((l,k)=>this.text(l,x+13,this.y+78+k*11,8,C.muted));
    });this.y+=height+12;
   }
@@ -96,6 +96,7 @@ export async function createProposalPdf(model:FinancialModel,projectId:string,fo
   {label:'Выручка от эксплуатации',value:money(d.flows.operatingRevenue)},
   {label:'Расходы на эксплуатацию',value:money(d.flows.operatingCosts)},
   {label:'NOI за период эксплуатации',value:money(d.flows.noi),ink:tone(d.flows.noi)},
+  {label:'Годовая доходность от эксплуатации',value:pct(h.annualROI),ink:h.annualROI===null?C.ink:tone(h.annualROI)},
   ...(plan?.saleEnabled?[{label:'Поступление от продажи',value:money(d.flows.sale)},{label:'Расходы на сделку',value:money(d.flows.saleCosts)}]:[]),
  ]:[{label:'Выручка от продажи юнитов',value:money(r.revenue)},{label:'Бюджет проекта',value:money(r.cost)}];
  b.newPage('','',true);
@@ -111,7 +112,7 @@ export async function createProposalPdf(model:FinancialModel,projectId:string,fo
 
  b.newPage('Инвестиционная логика','Ключевые результаты и полный срок реализации проекта.');
  b.paragraph(`${p.name}. ${desc}`,11,C.ink);
- b.kpis([...flowKpis,{label:'ROI за весь период',value:pct(d.totalROI),note:h?'Прибыль / себестоимость создания':'Прибыль / все расходы',ink:d.totalROI===null?C.ink:tone(d.totalROI)},{label:h?'Среднегодовая доходность':'Горизонт денежных потоков',value:h?pct(h.averageAnnualROI):`${d.end} мес.`,note:h?.investmentMonths?`От начала строительства до продажи: ${h.investmentMonths} мес.`:h?'Не определяется без продажи отеля':'От начала модели',ink:h?.averageAnnualROI?tone(h.averageAnnualROI):C.ink},{label:`NPV · ${num(d.discount,1)}% годовых`,value:money(d.npv),ink:tone(d.npv)}],true);
+ b.kpis([...flowKpis,{label:'ROI за весь период',value:pct(d.totalROI),note:h?'Прибыль / себестоимость создания':'Прибыль / все расходы',ink:d.totalROI===null?C.ink:tone(d.totalROI)},{label:h?'Среднегодовой ROI с учётом продажи':'Горизонт денежных потоков',value:h?pct(h.averageAnnualROI):`${d.end} мес.`,note:h?.investmentMonths?`От начала строительства до продажи: ${h.investmentMonths} мес.`:h?'Не определяется без продажи отеля':'От начала модели',ink:h?.averageAnnualROI?tone(h.averageAnnualROI):C.ink},{label:`NPV · ${num(d.discount,1)}% годовых`,value:money(d.npv),ink:tone(d.npv)}],true);
  if(h)b.paragraph(`Окупаемость только эксплуатацией: ${h.operatingPaybackYears===null?'не определяется':num(h.operatingPaybackYears,1)+' лет от открытия'}.`,10,C.ink);
 
  b.newPage('Актив и предпосылки','Параметры проекта, типы юнитов и исходные допущения.');
@@ -144,8 +145,8 @@ export async function createProposalPdf(model:FinancialModel,projectId:string,fo
  b.newPage('Финансовый план по годам',`Суммы в тысячах ${model.currency}, округлены. Продажа указана за вычетом расходов на сделку.`);
  const thousands=(v:number)=>num(Math.abs(v)<.5?0:v/1000,1);
  b.table(h?['ГОД / МЕСЯЦЫ','ИНВЕСТ. БЮДЖЕТ','ВЫРУЧКА ОТЕЛЯ','OPEX','NOI','ПРОДАЖА НЕТТО','ЧИСТЫЙ ПОТОК']:['ГОД / МЕСЯЦЫ','РАСХОДЫ','ПОСТУПЛЕНИЯ','ЧИСТЫЙ ПОТОК'],years.map(y=>h?[`${y.year} · M${y.start}-${y.end}`,thousands(y.developmentCosts),thousands(y.operatingIncome),thousands(y.operatingCosts),thousands(y.noi),thousands(y.sale-y.saleCosts),thousands(y.net)]:[`${y.year} · M${y.start}-${y.end}`,thousands(y.cost),thousands(y.income),thousands(y.net)]),h?[68,72,76,68,68,78,CW-430]:[100,135,135,CW-370],h?[1,2,3,4,5,6]:[1,2,3],8);
- b.ensure(32+Math.ceil((flowKpis.length+(h?3:2))/3)*84);b.heading('Итоги за весь срок');
- b.kpis([...flowKpis,{label:'Чистый результат',value:money(r.profit),ink:tone(r.profit)},{label:'ROI за весь период',value:pct(d.totalROI),ink:d.totalROI===null?C.ink:tone(d.totalROI)},...(h?[{label:'Среднегодовая доходность',value:pct(h.averageAnnualROI),note:h.investmentMonths?`Полный срок: ${h.investmentMonths} мес. от начала стройки`:'Продажа выключена',ink:h.averageAnnualROI?tone(h.averageAnnualROI):C.ink}]:[])],true);
+ b.ensure(32+Math.ceil((flowKpis.length+(h?3:2))/3)*100);b.heading('Итоги за весь срок');
+ b.kpis([...flowKpis,{label:'Чистый результат',value:money(r.profit),ink:tone(r.profit)},{label:'ROI за весь период',value:pct(d.totalROI),ink:d.totalROI===null?C.ink:tone(d.totalROI)},...(h?[{label:'Среднегодовой ROI с учётом продажи',value:pct(h.averageAnnualROI),note:h.investmentMonths?`Полный срок: ${h.investmentMonths} мес. от начала стройки`:'Продажа выключена',ink:h.averageAnnualROI?tone(h.averageAnnualROI):C.ink}]:[])],true);
 
  if(h||d.investments.length)b.newPage(h?'Продажа отеля':'Финансирование','');
  if(h&&plan){b.table(['ПАРАМЕТР','ЗНАЧЕНИЕ'],[['Статус',plan.saleEnabled?'Включена в расчёт':'Отключена, стоимость актива не включена в доход'],['Срок от открытия',`${num(plan.operatingMonths/12,2)} лет`],['Дата продажи',h.saleMonth?date(h.saleMonth):'Не запланирована'],['Способ оценки',plan.saleValuation==='yield'?`NOI / доходность покупателя ${num(plan.buyerYield,2)}%`:'Цена задана вручную'],['Годовой NOI для оценки',money(h.annualNOI)],['Цена продажи',money(h.salePrice)+(plan.saleEnabled?'':' · предварительная оценка')],['Расходы на сделку',`${num(plan.saleCostPercent,2)}%`],['Чистое поступление',plan.saleEnabled?money(h.salePrice-h.costs.filter(c=>c.category==='Расходы на продажу отеля').reduce((s,c)=>s+c.amount,0)):'Не включено']],[200,CW-200]);}
