@@ -42,7 +42,7 @@ describe('investment proposal',()=>{
   if(kind==='no-sale')p.hotel!.saleEnabled=false;
   if(kind==='long'){p.name='Большой гостиничный комплекс с длинным названием в живописном районе острова';p.hotel!.operatingMonths=600;p.infrastructure=Array.from({length:28},(_,i)=>({id:String(i),name:`Инфраструктура ${i+1}: ресторан и дополнительные помещения для обслуживания гостей`,area:80,costPerM2:300,curve:'Even',offset:0,duration:4}));p.hotel!.roomTypes=Array.from({length:25},(_,i)=>({id:String(i),name:`Номер ${i+1} с большой террасой и видом на океан`,area:50,quantity:2,adrIdr:2400000}));}
   const bytes=await createProposalPdf(m,p.id,fonts,new Date('2026-11-18T12:00:00Z')),pdf=await PDFDocument.load(bytes);
-  expect(pdf.getPageCount()).toBeGreaterThanOrEqual(7);expect(pdf.getTitle()).toBe(`Инвестиционное предложение по проекту ${p.name}`);expect(bytes.length).toBeGreaterThan(20000);
+  expect(pdf.getPageCount()).toBeGreaterThanOrEqual(6);expect(pdf.getTitle()).toBe(`Инвестиционное предложение по проекту ${p.name}`);expect(bytes.length).toBeGreaterThan(20000);
   if(process.env.PROPOSAL_QA_DIR){mkdirSync(process.env.PROPOSAL_QA_DIR,{recursive:true});writeFileSync(`${process.env.PROPOSAL_QA_DIR}/${kind}.pdf`,bytes);}
  },20000);
 });

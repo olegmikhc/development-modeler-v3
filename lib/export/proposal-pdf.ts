@@ -139,7 +139,7 @@ export async function createProposalPdf(model:FinancialModel,projectId:string,fo
 
  b.newPage('Бюджет и этапы','Структура затрат на создание проекта и календарь реализации.');
  const groups=[['Земля',d.budget.filter(([k])=>k==='Land Payments').reduce((s,[,v])=>s+v,0)],['Строительство',d.budget.filter(([k])=>k==='Construction').reduce((s,[,v])=>s+v,0)],['Инфраструктура',d.budget.filter(([k])=>k.startsWith('Infrastructure · ')).reduce((s,[,v])=>s+v,0)],['Прочие затраты',d.budget.filter(([k])=>k!=='Land Payments'&&k!=='Construction'&&!k.startsWith('Infrastructure · ')).reduce((s,[,v])=>s+v,0)]] as [string,number][];
- for(const [label,value] of groups){b.ensure(62);b.text(label,M,b.y,10);b.text(money(value),M+260,b.y,11,C.ink,true);b.rect(M,b.y+24,CW,10);if(cost>0&&value>0)b.rect(M,b.y+24,Math.max(1,Math.min(CW,CW*value/cost)),10,C.purple);b.y+=57;}
+ for(const [label,value] of groups){b.ensure(43);b.text(label,M,b.y,10);b.text(money(value),M+260,b.y,11,C.ink,true);b.rect(M,b.y+20,CW,7);if(cost>0&&value>0)b.rect(M,b.y+20,Math.max(1,Math.min(CW,CW*value/cost)),7,C.purple);b.y+=40;}
  b.paragraph(`Инвестиционный бюджет: ${money(cost)}`,11,C.ink);
  b.heading('Календарь проекта');
  b.table(['ЭТАП','ПЕРИОД'],[['Начало проекта',date(p.start)],['Разрешения',period(d.timeline.pbgStart,d.timeline.pbgEnd)],['Строительство',period(d.timeline.constructionStart,d.timeline.completion)],['Передача объекта',date(d.timeline.handover)],...(h?[['Эксплуатация',plan!.operatingMonths?period(h.opening,h.end):'Не задана'],['Продажа',h.saleMonth?date(h.saleMonth):'Отключена']]:[])],[180,CW-180]);
