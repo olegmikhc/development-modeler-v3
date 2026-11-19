@@ -129,6 +129,10 @@ export async function createProposalPdf(model:FinancialModel,projectId:string,fo
    return `${u.name}${detail} — ${num(u.quantity)} номеров`;
   }).join(' · ')+(types.length>4?` · ещё ${types.length-4} типов — в составе актива`:''),10,C.ink);
  }
+ if(!plan){
+  b.paragraph(`Всего юнитов: ${num(r.units)}`,13,C.ink);
+  b.paragraph(p.units.slice(0,4).map(u=>`${u.name} — ${num(u.quantity)} шт.`).join(' · ')+(p.units.length>4?` · ещё ${p.units.length-4} типов — в составе актива`:''),10,C.ink);
+ }
  b.y=Math.max(b.y+12,410);
  b.kpis([{label:'Бюджет проекта',value:money(cost),note:'Земля, строительство и прочие затраты'},h?{label:'Годовой NOI',value:money(h.annualNOI),note:'Последние 12 месяцев эксплуатации',ink:tone(h.annualNOI)}:{label:'Выручка от продажи юнитов',value:money(r.revenue)}, {label:'Потребность в капитале',value:money(r.peak),note:'Максимальный кассовый дефицит'},{label:'Чистый результат',value:money(r.profit),note:'До финансирования и выплат инвесторам',ink:tone(r.profit)}]);
  b.paragraph(`Сценарий: ${tr(d.scenarioName)} · Валюта: ${model.currency}\nСформировано: ${generatedAt.toLocaleDateString('ru-RU')} · Начало модели: ${date(1)}`,9);
