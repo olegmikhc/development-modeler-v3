@@ -16,9 +16,14 @@ export function proposalData(model:FinancialModel, projectId:string){
  const plan=hotel?hotelPlan(project):null;
  const years=hotelLifecycle(result,hotel?.end??0);
  const end=years.at(-1)!.end;
+ const flows=years.reduce((totals,y)=>({
+  development:totals.development+y.developmentCosts,operatingRevenue:totals.operatingRevenue+y.operatingIncome,
+  operatingCosts:totals.operatingCosts+y.operatingCosts,noi:totals.noi+y.noi,
+  sale:totals.sale+y.sale,saleCosts:totals.saleCosts+y.saleCosts,
+ }),{development:0,operatingRevenue:0,operatingCosts:0,noi:0,sale:0,saleCosts:0});
  const totalROI=hotel?.totalROI??(result.cost>0?result.profit/result.cost:null);
  const budget=Object.entries(result.costs).filter(([name])=>!hotel||!['Переменные расходы отеля','Постоянные расходы отеля','Расходы на продажу отеля'].includes(name));
- return {model,project,scenarioName:scenario?.name??'Базовый',adjustments,effective,result,hotel,plan,years,end,totalROI,budget,
+ return {model,project,scenarioName:scenario?.name??'Базовый',adjustments,effective,result,hotel,plan,years,end,totalROI,budget,flows,
   includesCompany:model.projects.length===1,discount:model.analysis?.discount??15,npv:npv(result,model.analysis?.discount??15),
   timeline:timeline(project,effective),
   infrastructure:(project.infrastructure??[]).map(item=>({...item,window:infrastructureWindow(project,item,effective),budget:calculateInfrastructureSpend(project,effective).filter(row=>row.infrastructureId===item.id).reduce((s,row)=>s+row.amount,0)})),

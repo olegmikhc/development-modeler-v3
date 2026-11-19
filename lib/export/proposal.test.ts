@@ -21,9 +21,24 @@ describe('investment proposal',()=>{
   const d=proposalData(m,m.projects[0].id);expect(d.effective).toEqual(neutral);expect(d.includesCompany).toBe(false);expect(d.result).toEqual(scopedResult(m,m.projects[0].id,neutral));
  });
  it('does not include a terminal sale or annualized return when sale is off',()=>{const m=sample();m.projects[0].hotel!.saleEnabled=false;const d=proposalData(m,m.projects[0].id);expect(d.years.reduce((s,y)=>s+y.sale,0)).toBe(0);expect(d.hotel!.averageAnnualROI).toBeNull();});
+ it('separates the development budget, hotel operations and exit including transaction costs',()=>{
+  const m=sample(),p=m.projects[0];p.hotel!.saleCostPercent=7;
+  const d=proposalData(m,p.id),f=d.flows;
+  expect(f.development).toBeCloseTo(d.hotel!.developmentCost,2);
+  expect(f.operatingRevenue+f.sale).toBeCloseTo(d.result.revenue,2);
+  expect(f.development+f.operatingCosts+f.saleCosts).toBeCloseTo(d.result.cost,2);
+  expect(f.noi).toBeCloseTo(f.operatingRevenue-f.operatingCosts,2);
+  expect(f.noi+f.sale-f.saleCosts-f.development).toBeCloseTo(d.result.profit,2);
+  expect(f.saleCosts).toBeCloseTo(f.sale*.07,2);
+  p.hotel!.saleEnabled=false;const off=proposalData(m,p.id);
+  expect(off.flows.sale).toBe(0);expect(off.flows.saleCosts).toBe(0);
+  expect(off.flows.operatingRevenue).toBe(f.operatingRevenue);
+  expect(off.flows.development).toBe(f.development);
+ });
  it('rejects deleted projects and sanitizes the download filename',()=>{const m=sample();expect(()=>proposalData(m,'missing')).toThrow('Проект не найден');expect(proposalFilename('A/B:C')).toBe('Инвестиционное предложение - A B C.pdf');});
- it.each(['hotel','no-sale','long','retail'] as const)('generates a complete readable PDF for %s',async kind=>{
+ it.each(['hotel','financed','no-sale','long','retail'] as const)('generates a complete readable PDF for %s',async kind=>{
   const m=kind==='retail'?createFinancialModel('Виллы','single','retail'):sample(),p=m.projects[0];
+  if(kind==='financed')m.investments=[{id:'funding',name:'Инвестор проекта',projectId:p.id,enabled:true,type:'annual',rate:12,compounding:'simple',incomePayment:'maturity',maturityMonth:24,autoSettle:true,tranches:[{id:'tranche',month:1,amount:500000}],repayments:[]}];
   if(kind==='no-sale')p.hotel!.saleEnabled=false;
   if(kind==='long'){p.name='Большой гостиничный комплекс с длинным названием в живописном районе острова';p.hotel!.operatingMonths=600;p.infrastructure=Array.from({length:28},(_,i)=>({id:String(i),name:`Инфраструктура ${i+1}: ресторан и дополнительные помещения для обслуживания гостей`,area:80,costPerM2:300,curve:'Even',offset:0,duration:4}));p.hotel!.roomTypes=Array.from({length:25},(_,i)=>({id:String(i),name:`Номер ${i+1} с большой террасой и видом на океан`,area:50,quantity:2,adrIdr:2400000}));}
   const bytes=await createProposalPdf(m,p.id,fonts,new Date('2026-11-18T12:00:00Z')),pdf=await PDFDocument.load(bytes);
